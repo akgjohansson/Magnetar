@@ -1,0 +1,79 @@
+clear
+unset label
+set term pdf color 
+set out '041006.pdf'
+
+set logscale xy
+
+set xrange [5e+2:1e+7]
+set yrange [2e+41:1e+46]
+
+set title 'GRB 041006'
+set ylabel 'L$_{R}$ (erg/s)'
+set xlabel '$t-t_{0}$ (days)'
+set key bottom
+
+### PLATEAU MODEL (units of seconds) ###
+
+L1(x)=L0*(1+x/T0)**-2
+
+L0 = 1.1916e+45
+T0 = 1.0392e+4
+
+##single PL
+
+f1(x)=Z1*x**-a1
+
+Z1 = 6.209e+48
+a1 = 1.08	
+
+W(x)=L1(x)+f1(x)
+
+### SN coupled ###
+d_w=18
+d_w2=8
+td=16.51*86400
+#tp=20*86400
+tp=d_w*(T0)
+
+#Ep=4e+44*86400
+Ep=d_w2*L0*T0
+
+s(x)=x/td
+y=td/tp	 
+A(z)=(1/(1+y*z)**2)*z*exp((0.5*z**2))
+f(x)=int_dz(A(z),0,s(x))
+L(x)=(Ep/tp)*exp(-0.5*s(x)**2)*f(x)
+
+
+
+
+### COMBINED ###
+
+Q(x)=L(x)+W(x)
+
+#fit [100:1e+7] Q(x) 'data.txt' using 1:2:3 via Z1,a1,L0,T0
+
+
+### PRINT STATEMENTS ###
+
+# 1. B-field:
+
+B = (4.2/(L0*1e-49*(T0*1e-3)**2))**0.5
+
+print 'B-field (1e+15 G) = ', B
+
+# 2. Initial spin period
+
+P = (2.05 / (L0*1e-49*T0*1e-3))**0.5
+
+print 'Initial spin period (ms) = ', P
+
+### LABELS ###
+
+set label 1 'B-field = 18.0 $\times 10^{15}$ G' at 9e+4,3e+45
+set label 2 'P = 40.7 ms' at 9e+4,1e+45
+
+plot L(x) with color green lt 2 title '', 'data.txt' with errorbars title '', L1(x) with color red lt 2 title '', Q(x) with color blue lt 1 title '', f1(x) with color grey lt 2 title ''
+
+
