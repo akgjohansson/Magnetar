@@ -7,6 +7,8 @@ import pymultinest
 import sys
 import random
 import os
+
+
 try:if not os.path.exists("chains"): os.mkdir("chains")
 except: print 'chains/ folder exists'
 
