@@ -9,7 +9,8 @@ import random
 import os
 
 
-try:if not os.path.exists("chains"): os.mkdir("chains")
+try:
+	if not os.path.exists("chains"): os.mkdir("chains")
 except: print 'chains/ folder exists'
 
 ### FUNCTIONS ###
@@ -22,7 +23,7 @@ def my_log_likelihood(cube,ndims,nparam):
         L = Magnetar(t,cube[0], cube[1], cube[2], cube[3], cube[4], cube[5], cube[6])
         ### chi2 = np.sum(((L-L_data)**2) / L_data_error**2)    # chi square
 
-	chi2 = np.sum(np.log10(L_data / L)**2 / np.log10((L_data+L_data_error)/L)**2)   ### Logarithmic chisquare
+	chi2 = np.sum(np.log10(L_data / L)**2 / np.log10((L_data+L_data_error)/L_data)**2)   ### Logarithmic chisquare
 
         return -chi2 / 2
 
@@ -39,6 +40,7 @@ def Magnetar(t,M,z1,z2,L0,T0,td,a1):
 	k=M*t**-a1
 	h=L0*(1+(t/T0))**-2
 	return k+h+((L0*z1)/z2)*g*f
+
 
 def integrator(td, T0, z2 , upper_limit , lower_limit=0):
         if upper_limit == lower_limit: return 0,0
@@ -91,13 +93,18 @@ n_params = 7
 livePoints = 1000   # Increase for a more well defined posterior, decrease for speed
 pymultinest.run(my_log_likelihood, my_prior, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'model', n_live_points = livePoints,evidence_tolerance=0.5)
 
-###################################
-### Reading in MultiNest output ###
-###################################
+
+#######################################################################
+### Reading in MultiNest output and plotting marginal distributions ###
+#######################################################################
 
 open_stats = open('chains/1-stats.dat','r')
 read_stats = open_stats.read()
 open_stats.close()
+
+open_post_separate = open('chains/1-post_separate.dat')
+post_separate = open_post_separate.read().split('\n\n')
+open_post_separate.close()
 
 number_of_modes = int(read_stats.split('Total Modes Found:')[1].split()[0])
 print 'Posterior has %d modes'%number_of_modes
@@ -142,6 +149,10 @@ for i_modes in range(number_of_modes):
         print '   T0 bestfit = %s\n\n'%(stats_bestfit_T0[i_modes])
         print '   td bestfit = %s\n\n'%(stats_bestfit_td[i_modes])
         print '   a1 bestfit = %s\n\n'%(stats_bestfit_a1[i_modes])
+
+	posterior = np.array(post_separate[1+i_modes].split(),dtype=str)
+	
+
         
 
 if number_of_modes > 1:
@@ -169,15 +180,14 @@ print '***************************************\n\n'
 
 ### PLOT RESULTS
 
-
-t_plot = np.linspace(0,100,300)						#linspace for smooth Arnett plot
+t_plot = np.logspace(np.log10(np.min(t)),np.log10(np.max(t)),300)
 L_fit = Magnetar(t_plot,stats_bestfit_M[plot_mode],stats_bestfit_z1[plot_mode], stats_bestfit_z2[plot_mode], stats_bestfit_L0[plot_mode], stats_bestfit_T0[plot_mode], stats_bestfit_td[plot_mode], stats_bestfit_a1[plot_mode]) 	
 
 plt.figure()
-plt.loglog(t_plot,L_fit, color='blue')	
+plt.plot(t_plot,L_fit, color='blue')	
 plt.errorbar(t,L_data, yerr=L_data_error, fmt='o', color='blue')	#Fitted data (incl. errorbars)
 plt.legend(['Magnetar (fit)','GRB (data)'])				#Arnett model (best-fit)
-
+plt.loglog()	
 #plt.xlim([0,100])
 #plt.ylim([0,3e+43])
 plt.ylabel('$L$ (erg/s)')
